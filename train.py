@@ -8,9 +8,10 @@ from model import RecommendationModel
 from tqdm import tqdm
 
 # --- 1. 配置参数 ---
-SEQ_LEN = 5  # 序列最大长度 (为了在小数据集上生效，调小该值)
-BATCH_SIZE = 128
-EPOCHS = 20  # 增加epoch以更好地学习
+DATA = r'./Datasets/douban_music/douban_music.tsv'
+SEQ_LEN = 15  # 序列最大长度 (为了在小数据集上生效，调小该值)
+BATCH_SIZE = 256
+EPOCHS = 1  # 增加epoch以更好地学习
 LEARNING_RATE = 0.001
 EMBEDDING_DIM = 64
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -26,15 +27,18 @@ def preprocess_data(filepath='ratings.csv'):
     - 生成用户行为序列。
     """
     print("Starting data preprocessing (V2)...")
-    df = pd.read_csv(filepath)
+    df = pd.read_csv(filepath, sep='\t', encoding='utf-8')
+    df = df[['UserId', 'ItemId', 'Timestamp']]
+    # df = df.iloc[:10000, :]
+    df.rename(columns={'UserId': 'user_id', 'ItemId': 'item_id', 'Timestamp': 'timestamp'}, inplace=True)
     df.sort_values(by='timestamp', inplace=True)
 
     # ID映射: 索引从1开始，0留给padding
     unique_users = df['user_id'].unique()
     unique_items = df['item_id'].unique()
 
-    user_map = {id: i + 1 for i, id in enumerate(unique_users)}
-    item_map = {id: i + 1 for i, id in enumerate(unique_items)}
+    user_map = {int(id): int(i + 1) for i, id in enumerate(unique_users)}
+    item_map = {int(id): int(i + 1) for i, id in enumerate(unique_items)}
 
     num_users = len(user_map)
     num_items = len(item_map)
@@ -97,7 +101,7 @@ def train():
     """
     主训练函数。
     """
-    sequences_dict, num_users, num_items = preprocess_data()
+    sequences_dict, num_users, num_items = preprocess_data(DATA)
 
     dataset = SequenceDataset(sequences_dict, SEQ_LEN)
     if len(dataset) == 0:
@@ -142,12 +146,12 @@ def train():
 
     print("Training finished.")
 
-    torch.save(model.state_dict(), 'model.pth')
+    torch.save(model.state_dict(), 'checkpoint/model.pth')
     print("Model state dict saved to model.pth")
 
     # 提取商品Embedding时，要忽略索引0 (padding)
     item_embeddings = model.item_embedding.weight.detach().cpu().numpy()[1:]
-    np.save('item_embeddings.npy', item_embeddings)
+    np.save('checkpoint/item_embeddings.npy', item_embeddings)
     print("Item embeddings saved to item_embeddings.npy")
     # 注意：保存的item_embeddings.npy的行数将是num_items，其索引与item_map中的索引(1 to N)相对应。
 

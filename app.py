@@ -3,13 +3,16 @@ import torch
 import numpy as np
 from flask import Flask, request, jsonify
 from model import RecommendationModel
+import os
+
+os.environ['KMP_DUplicate_LIB_OK']='True'
 
 # --- 1. 配置与全局变量 ---
-MODEL_PATH = 'model.pth'
-ITEM_EMBEDDINGS_PATH = 'item_embeddings.npy'
-USER_MAP_PATH = 'user_map.json'
-ITEM_MAP_PATH = 'item_map.json'
-SEQ_LEN = 5  # 必须与训练时一致
+MODEL_PATH = 'checkpoint/model.pth'
+ITEM_EMBEDDINGS_PATH = 'checkpoint/item_embeddings.npy'
+USER_MAP_PATH = 'maps/user_map.json'
+ITEM_MAP_PATH = 'maps/item_map.json'
+SEQ_LEN = 15  # 必须与训练时一致
 EMBEDDING_DIM = 64  # 必须与训练时一致
 
 app = Flask(__name__)
@@ -57,6 +60,9 @@ def load_artifacts():
     print("Artifacts loaded successfully.")
 
 
+load_artifacts()
+
+
 # --- 3. API 接口定义 (V2) ---
 @app.route('/recommend', methods=['POST'])
 def recommend():
@@ -67,6 +73,10 @@ def recommend():
     user_id = data.get('user_id')
     recent_clicks = data.get('recent_clicks', [])
     top_k = data.get('top_k', 10)
+
+    # 检查是否已加载必要的资源
+    if user_map is None or item_map is None or model is None or item_embeddings is None:
+        return jsonify({"error": "Service not properly initialized. Please check server logs."}), 500
 
     if not user_id or user_id not in user_map:
         return jsonify({"error": f"User '{user_id}' not found."}), 404
@@ -115,6 +125,4 @@ def recommend():
 
 
 if __name__ == '__main__':
-    load_artifacts()
     app.run(host='0.0.0.0', port=5000, debug=True)
-
