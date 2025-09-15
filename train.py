@@ -11,10 +11,11 @@ from tqdm import tqdm
 DATA = r'./Datasets/douban_music/douban_music.tsv'
 SEQ_LEN = 15  # 序列最大长度 (为了在小数据集上生效，调小该值)
 BATCH_SIZE = 256
-EPOCHS = 1  # 增加epoch以更好地学习
+EPOCHS = 20  # 增加epoch以更好地学习
 LEARNING_RATE = 0.001
 EMBEDDING_DIM = 64
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+K_ITEMS = 500
 print(f"Using device: {DEVICE}")
 
 
@@ -26,16 +27,31 @@ def preprocess_data(filepath='ratings.csv'):
     - 创建ID映射，其中索引0保留给padding。
     - 生成用户行为序列。
     """
-    print("Starting data preprocessing (V2)...")
+    print("Starting data preprocessing ...")
     df = pd.read_csv(filepath, sep='\t', encoding='utf-8')
     df = df[['UserId', 'ItemId', 'Timestamp']]
-    # df = df.iloc[:10000, :]
     df.rename(columns={'UserId': 'user_id', 'ItemId': 'item_id', 'Timestamp': 'timestamp'}, inplace=True)
-    df.sort_values(by='timestamp', inplace=True)
+
+    print(f"原始数据规模: {df.shape[0]} 条记录, {df['user_id'].nunique()} 个用户, {df['item_id'].nunique()} 个商品")
+
+    # 2. 数据精简：筛选出交互最频繁的商品
+    print(f"\n步骤 1: 筛选数据，仅保留Top {K_ITEMS} 热门商品相关的交互...")
+    item_counts = df['item_id'].value_counts()
+    num_items_to_keep = min(K_ITEMS, len(item_counts))
+    top_items = item_counts.nlargest(num_items_to_keep).index
+    print(f"已识别出 {len(top_items)} 个最热门的商品。")
+
+    # 3. 基于热门商品，过滤交互数据
+    df_filtered = df[df['item_id'].isin(top_items)]
+    print(
+        f"数据精简后规模: {df_filtered.shape[0]} 条记录, {df_filtered['user_id'].nunique()} 个用户, {df_filtered['item_id'].nunique()} 个商品")
+
+    # --- 从这里开始，所有操作都基于 df_filtered ---
+    df_filtered.sort_values(by='timestamp', inplace=True)
 
     # ID映射: 索引从1开始，0留给padding
-    unique_users = df['user_id'].unique()
-    unique_items = df['item_id'].unique()
+    unique_users = df_filtered['user_id'].unique()
+    unique_items = df_filtered['item_id'].unique()
 
     user_map = {int(id): int(i + 1) for i, id in enumerate(unique_users)}
     item_map = {int(id): int(i + 1) for i, id in enumerate(unique_items)}
@@ -49,10 +65,10 @@ def preprocess_data(filepath='ratings.csv'):
         json.dump(item_map, f)
     print("ID maps saved.")
 
-    df['user_idx'] = df['user_id'].map(user_map)
-    df['item_idx'] = df['item_id'].map(item_map)
+    df_filtered['user_idx'] = df_filtered['user_id'].map(user_map)
+    df_filtered['item_idx'] = df_filtered['item_id'].map(item_map)
 
-    sequences = df.groupby('user_idx')['item_idx'].apply(list)
+    sequences = df_filtered.groupby('user_idx')['item_idx'].apply(list)
 
     print("Data preprocessing finished.")
     return sequences.to_dict(), num_users, num_items
@@ -158,4 +174,3 @@ def train():
 
 if __name__ == '__main__':
     train()
-
