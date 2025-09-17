@@ -1,2 +1,4 @@
 /.idea/
 Datasets/
+/checkpoint/item_embeddings.npy
+/checkpoint/model.pth
