@@ -11,7 +11,7 @@
  Target Server Version : 80042 (8.0.42)
  File Encoding         : 65001
 
- Date: 17/09/2025 22:17:10
+ Date: 18/09/2025 23:30:52
 */
 
 SET NAMES utf8mb4;
@@ -39,6 +39,53 @@ CREATE TABLE `cart_items`  (
 -- ----------------------------
 -- Records of cart_items
 -- ----------------------------
+
+-- ----------------------------
+-- Table structure for order_items
+-- ----------------------------
+DROP TABLE IF EXISTS `order_items`;
+CREATE TABLE `order_items`  (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '订单项ID, 主键',
+  `order_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '所属订单ID',
+  `product_id` bigint UNSIGNED NOT NULL COMMENT '商品ID',
+  `quantity` int UNSIGNED NOT NULL COMMENT '商品数量',
+  `price` decimal(10, 2) NOT NULL COMMENT '购买时商品单价 (快照)',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_order_id`(`order_id` ASC) USING BTREE,
+  INDEX `product_id`(`product_id` ASC) USING BTREE,
+  CONSTRAINT `order_items_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `order_items_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '订单项表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of order_items
+-- ----------------------------
+INSERT INTO `order_items` VALUES (1, 'ec15ed36-edab-488c-9112-a5d7de58c353', 27, 7, 7008.62);
+INSERT INTO `order_items` VALUES (2, 'ec15ed36-edab-488c-9112-a5d7de58c353', 53, 2, 519.17);
+INSERT INTO `order_items` VALUES (3, '097fbed7-d406-470e-8547-07936ff98e83', 27, 3, 7008.62);
+INSERT INTO `order_items` VALUES (4, '097fbed7-d406-470e-8547-07936ff98e83', 271, 3, 1202.17);
+
+-- ----------------------------
+-- Table structure for orders
+-- ----------------------------
+DROP TABLE IF EXISTS `orders`;
+CREATE TABLE `orders`  (
+  `id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '订单ID, 使用UUID, 主键',
+  `user_id` bigint UNSIGNED NOT NULL COMMENT '用户ID',
+  `total_amount` decimal(10, 2) NOT NULL COMMENT '订单总金额',
+  `status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'PENDING' COMMENT '订单状态 (PENDING, PAID, SHIPPED, COMPLETED, CANCELLED)',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_user_id`(`user_id` ASC) USING BTREE,
+  CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '订单表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of orders
+-- ----------------------------
+INSERT INTO `orders` VALUES ('097fbed7-d406-470e-8547-07936ff98e83', 1, 24632.37, 'PAID', '2025-09-18 23:28:09', '2025-09-18 23:28:09');
+INSERT INTO `orders` VALUES ('ec15ed36-edab-488c-9112-a5d7de58c353', 1, 50098.68, 'PAID', '2025-09-18 23:27:39', '2025-09-18 23:27:39');
 
 -- ----------------------------
 -- Table structure for product_categories
@@ -113,7 +160,7 @@ INSERT INTO `products` VALUES (23, '音响系统8', '自动生成的商品描述
 INSERT INTO `products` VALUES (24, '无线蓝牙耳机15', '自动生成的商品描述。', 7890.18, 95, 2, 5, 'https://placehold.co/600x400/FF2D55/FFFFFF?text=Bluetooth+Earbuds15', '[\"https://placehold.co/600x400/FF2D55/FFFFFF?text=Bluetooth+Earbuds15\"]', '{\"CPU\": \"Intel Core i7\", \"GPU\": \"NVIDIA RTX 4070\", \"RAM\": \"16GB\"}', '2025-08-25 10:47:00', '2025-08-25 15:47:00');
 INSERT INTO `products` VALUES (25, '电动牙刷4', '自动生成的商品描述。', 5142.43, 70, 19, 5, 'https://placehold.co/600x400/FF9500/FFFFFF?text=Electric+Toothbrush4', '[\"https://placehold.co/600x400/FF9500/FFFFFF?text=Electric+Toothbrush4\"]', '{\"CPU\": \"Intel Core i7\", \"GPU\": \"NVIDIA RTX 4070\", \"RAM\": \"16GB\"}', '2025-09-08 16:52:00', '2025-09-09 02:52:00');
 INSERT INTO `products` VALUES (26, '电动牙刷15', '自动生成的商品描述。', 9759.51, 84, 11, 3, 'https://placehold.co/600x400/5856D6/FFFFFF?text=Electric+Toothbrush15', '[\"https://placehold.co/600x400/5856D6/FFFFFF?text=Electric+Toothbrush15\"]', '{\"Weight\": \"17kg\", \"Material\": \"Metal\"}', '2025-09-06 04:40:00', '2025-09-06 11:40:00');
-INSERT INTO `products` VALUES (27, '路由器5', '自动生成的商品描述。', 7008.62, 86, 13, 2, 'https://placehold.co/600x400/FF3B30/FFFFFF?text=WiFi+Router5', '[\"https://placehold.co/600x400/FF3B30/FFFFFF?text=WiFi+Router5\"]', '{\"Pages\": 515, \"Author\": \"Various\"}', '2025-09-09 09:33:00', '2025-09-09 14:33:00');
+INSERT INTO `products` VALUES (27, '路由器5', '自动生成的商品描述。', 7008.62, 76, 23, 2, 'https://placehold.co/600x400/FF3B30/FFFFFF?text=WiFi+Router5', '[\"https://placehold.co/600x400/FF3B30/FFFFFF?text=WiFi+Router5\"]', '{\"Pages\": 515, \"Author\": \"Various\"}', '2025-09-09 09:33:00', '2025-09-09 14:33:00');
 INSERT INTO `products` VALUES (28, '音响系统5', '自动生成的商品描述。', 3762.38, 43, 26, 4, 'https://placehold.co/600x400/FF9500/FFFFFF?text=Speaker+System5', '[\"https://placehold.co/600x400/FF9500/FFFFFF?text=Speaker+System5\"]', '{\"CPU\": \"Snapdragon 8 Gen 3\", \"RAM\": \"16GB\", \"Storage\": \"128GB\"}', '2025-08-20 11:13:00', '2025-08-20 14:13:00');
 INSERT INTO `products` VALUES (29, '扫地机器人2', '自动生成的商品描述。', 3693.00, 24, 15, 1, 'https://placehold.co/600x400/FF2D55/FFFFFF?text=Robot+Vacuum2', '[\"https://placehold.co/600x400/FF2D55/FFFFFF?text=Robot+Vacuum2\"]', '{\"Battery\": \"30h\", \"Warranty\": \"2 years\"}', '2025-08-21 15:38:00', '2025-08-21 16:38:00');
 INSERT INTO `products` VALUES (30, '扫地机器人8', '自动生成的商品描述。', 4554.14, 32, 1, 3, 'https://placehold.co/600x400/34C759/FFFFFF?text=Robot+Vacuum8', '[\"https://placehold.co/600x400/34C759/FFFFFF?text=Robot+Vacuum8\"]', '{\"Weight\": \"19kg\", \"Material\": \"Wood\"}', '2025-08-26 20:54:00', '2025-08-27 03:54:00');
@@ -139,7 +186,7 @@ INSERT INTO `products` VALUES (49, '咖啡机7', '自动生成的商品描述。
 INSERT INTO `products` VALUES (50, '音响系统12', '自动生成的商品描述。', 9933.07, 79, 22, 2, 'https://placehold.co/600x400/FF3B30/FFFFFF?text=Speaker+System12', '[\"https://placehold.co/600x400/FF3B30/FFFFFF?text=Speaker+System12\"]', '{\"Pages\": 428, \"Author\": \"Various\"}', '2025-08-29 21:33:00', '2025-08-30 00:33:00');
 INSERT INTO `products` VALUES (51, '畅销小说套装12', '自动生成的商品描述。', 2814.37, 32, 8, 2, 'https://placehold.co/600x400/FF9500/FFFFFF?text=Novel+Set12', '[\"https://placehold.co/600x400/FF9500/FFFFFF?text=Novel+Set12\"]', '{\"Pages\": 678, \"Author\": \"Various\"}', '2025-09-09 05:47:00', '2025-09-09 15:47:00');
 INSERT INTO `products` VALUES (52, '平板电脑5', '自动生成的商品描述。', 9788.16, 98, 10, 3, 'https://placehold.co/600x400/FF3B30/FFFFFF?text=Tablet5', '[\"https://placehold.co/600x400/FF3B30/FFFFFF?text=Tablet5\"]', '{\"Weight\": \"15kg\", \"Material\": \"Wood\"}', '2025-08-22 04:59:00', '2025-08-22 07:59:00');
-INSERT INTO `products` VALUES (53, '4K显示器10', '自动生成的商品描述。', 519.17, 79, 13, 5, 'https://placehold.co/600x400/5856D6/FFFFFF?text=4K+Monitor10', '[\"https://placehold.co/600x400/5856D6/FFFFFF?text=4K+Monitor10\"]', '{\"CPU\": \"Intel Core i7\", \"GPU\": \"NVIDIA RTX 4070\", \"RAM\": \"16GB\"}', '2025-09-09 21:46:00', '2025-09-10 05:46:00');
+INSERT INTO `products` VALUES (53, '4K显示器10', '自动生成的商品描述。', 519.17, 77, 15, 5, 'https://placehold.co/600x400/5856D6/FFFFFF?text=4K+Monitor10', '[\"https://placehold.co/600x400/5856D6/FFFFFF?text=4K+Monitor10\"]', '{\"CPU\": \"Intel Core i7\", \"GPU\": \"NVIDIA RTX 4070\", \"RAM\": \"16GB\"}', '2025-09-09 21:46:00', '2025-09-10 05:46:00');
 INSERT INTO `products` VALUES (54, '畅销小说套装14', '自动生成的商品描述。', 4123.31, 67, 26, 1, 'https://placehold.co/600x400/FF3B30/FFFFFF?text=Novel+Set14', '[\"https://placehold.co/600x400/FF3B30/FFFFFF?text=Novel+Set14\"]', '{\"Battery\": \"22h\", \"Warranty\": \"2 years\"}', '2025-09-05 07:13:00', '2025-09-05 16:13:00');
 INSERT INTO `products` VALUES (55, '高性能游戏本12', '自动生成的商品描述。', 9053.29, 86, 28, 4, 'https://placehold.co/600x400/34C759/FFFFFF?text=Gaming+Laptop12', '[\"https://placehold.co/600x400/34C759/FFFFFF?text=Gaming+Laptop12\"]', '{\"CPU\": \"Snapdragon 8 Gen 3\", \"RAM\": \"16GB\", \"Storage\": \"256GB\"}', '2025-08-24 11:37:00', '2025-08-24 15:37:00');
 INSERT INTO `products` VALUES (56, '高性能游戏本11', '自动生成的商品描述。', 6802.57, 48, 23, 1, 'https://placehold.co/600x400/5856D6/FFFFFF?text=Gaming+Laptop11', '[\"https://placehold.co/600x400/5856D6/FFFFFF?text=Gaming+Laptop11\"]', '{\"Battery\": \"20h\", \"Warranty\": \"2 years\"}', '2025-09-05 23:48:00', '2025-09-06 03:48:00');
@@ -357,7 +404,7 @@ INSERT INTO `products` VALUES (267, '机械键盘4', '自动生成的商品描�
 INSERT INTO `products` VALUES (268, '空气净化器5', '自动生成的商品描述。', 2845.69, 72, 10, 2, 'https://placehold.co/600x400/FF3B30/FFFFFF?text=Air+Purifier5', '[\"https://placehold.co/600x400/FF3B30/FFFFFF?text=Air+Purifier5\"]', '{\"Pages\": 612, \"Author\": \"Various\"}', '2025-09-05 11:46:00', '2025-09-05 17:46:00');
 INSERT INTO `products` VALUES (269, '旗舰智能手机4', '自动生成的商品描述。', 5835.19, 86, 7, 3, 'https://placehold.co/600x400/FF3B30/FFFFFF?text=Smartphone4', '[\"https://placehold.co/600x400/FF3B30/FFFFFF?text=Smartphone4\"]', '{\"Weight\": \"3kg\", \"Material\": \"Metal\"}', '2025-08-24 15:59:00', '2025-08-25 01:59:00');
 INSERT INTO `products` VALUES (270, '无线蓝牙耳机6', '自动生成的商品描述。', 3203.81, 23, 29, 2, 'https://placehold.co/600x400/5856D6/FFFFFF?text=Bluetooth+Earbuds6', '[\"https://placehold.co/600x400/5856D6/FFFFFF?text=Bluetooth+Earbuds6\"]', '{\"Pages\": 999, \"Author\": \"Various\"}', '2025-09-08 08:25:00', '2025-09-08 16:25:00');
-INSERT INTO `products` VALUES (271, '人体工学办公椅11', '自动生成的商品描述。', 1202.17, 74, 19, 3, 'https://placehold.co/600x400/FF3B30/FFFFFF?text=Office+Chair11', '[\"https://placehold.co/600x400/FF3B30/FFFFFF?text=Office+Chair11\"]', '{\"Weight\": \"6kg\", \"Material\": \"Wood\"}', '2025-09-09 16:45:00', '2025-09-09 22:45:00');
+INSERT INTO `products` VALUES (271, '人体工学办公椅11', '自动生成的商品描述。', 1202.17, 71, 22, 3, 'https://placehold.co/600x400/FF3B30/FFFFFF?text=Office+Chair11', '[\"https://placehold.co/600x400/FF3B30/FFFFFF?text=Office+Chair11\"]', '{\"Weight\": \"6kg\", \"Material\": \"Wood\"}', '2025-09-09 16:45:00', '2025-09-09 22:45:00');
 INSERT INTO `products` VALUES (272, '高性能游戏本13', '自动生成的商品描述。', 1032.84, 62, 4, 4, 'https://placehold.co/600x400/FF3B30/FFFFFF?text=Gaming+Laptop13', '[\"https://placehold.co/600x400/FF3B30/FFFFFF?text=Gaming+Laptop13\"]', '{\"CPU\": \"Snapdragon 8 Gen 3\", \"RAM\": \"12GB\", \"Storage\": \"128GB\"}', '2025-08-20 21:07:00', '2025-08-21 04:07:00');
 INSERT INTO `products` VALUES (273, '单反相机9', '自动生成的商品描述。', 1220.52, 99, 27, 2, 'https://placehold.co/600x400/FF2D55/FFFFFF?text=DSLR+Camera9', '[\"https://placehold.co/600x400/FF2D55/FFFFFF?text=DSLR+Camera9\"]', '{\"Pages\": 989, \"Author\": \"Various\"}', '2025-08-28 10:16:00', '2025-08-28 11:16:00');
 INSERT INTO `products` VALUES (274, '人体工学办公椅12', '自动生成的商品描述。', 7871.60, 59, 3, 5, 'https://placehold.co/600x400/34C759/FFFFFF?text=Office+Chair12', '[\"https://placehold.co/600x400/34C759/FFFFFF?text=Office+Chair12\"]', '{\"CPU\": \"Intel Core i7\", \"GPU\": \"NVIDIA RTX 4070\", \"RAM\": \"16GB\"}', '2025-09-01 02:01:00', '2025-09-01 06:01:00');
