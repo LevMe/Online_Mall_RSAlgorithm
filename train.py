@@ -15,7 +15,7 @@ EPOCHS = 20  # 增加epoch以更好地学习
 LEARNING_RATE = 0.001
 EMBEDDING_DIM = 64
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-K_ITEMS = 500
+K_ITEMS = 300
 print(f"Using device: {DEVICE}")
 
 
