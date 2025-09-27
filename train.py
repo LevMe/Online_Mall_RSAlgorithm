@@ -3,6 +3,7 @@ import numpy as np
 import json
 import torch
 import torch.nn as nn
+from clickhouse_driver import Client
 from torch.utils.data import Dataset, DataLoader
 from model import RecommendationModel
 from tqdm import tqdm
@@ -19,6 +20,10 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 K_ITEMS = 300
 CHECKPOINT_DIR = 'checkpoint'
 MAPS_DIR = 'maps'
+# --- ClickHouse 配置 ---
+CLICKHOUSE_HOST = 'localhost' # 你的 ClickHouse 主机
+CLICKHOUSE_PORT = 9000      # 你的 ClickHouse 端口
+CLICKHOUSE_DB = 'online_mall' # 你的数据库名
 
 print(f"Using device: {DEVICE}")
 
@@ -31,6 +36,27 @@ def create_dirs():
     if not os.path.exists(MAPS_DIR):
         os.makedirs(MAPS_DIR)
 
+
+def fetch_data_from_clickhouse():
+    """
+    从 ClickHouse 中获取所有的用户行为数据。
+    """
+    print("Connecting to ClickHouse to fetch user behaviors...")
+    try:
+        client = Client(host=CLICKHOUSE_HOST, port=CLICKHOUSE_PORT, database=CLICKHOUSE_DB)
+        # 你可以增加 WHERE 条件来筛选特定的时间范围
+        query = "SELECT user_id, product_id, toUnixTimestamp(timestamp) as timestamp FROM user_behaviors"
+
+        data = client.execute(query, with_column_types=True)
+
+        columns = [col[0] for col in data[1]]
+        df = pd.DataFrame(data[0], columns=columns)
+
+        print(f"Successfully fetched {len(df)} records from ClickHouse.")
+        return df
+    except Exception as e:
+        print(f"Error fetching data from ClickHouse: {e}")
+        return None
 
 # --- 2. 数据预处理 (从文件) ---
 def preprocess_data_from_file(filepath=DATA_PATH):
@@ -47,33 +73,14 @@ def preprocess_data_from_file(filepath=DATA_PATH):
     return _process_dataframe(df)
 
 
-# --- 新增：数据预处理 (从后端数据) ---
-def preprocess_data_from_backend(user_behaviors):
-    """
-    处理从后端传递过来的用户行为数据。
-    - user_behaviors: 一个字典列表, e.g., [{'user_id': 1, 'product_id': 101, 'timestamp': 1625078400}, ...]
-    """
-    print("Starting data preprocessing from backend data...")
-    if not user_behaviors:
-        print("Error: Received empty user behavior data.")
-        return None, 0, 0
-
-    df = pd.DataFrame(user_behaviors)
-    # 将 'product_id' 重命名为 'item_id' 以匹配后续流程
-    df.rename(columns={'product_id': 'item_id'}, inplace=True)
-
-    # 确保数据类型正确
-    df['user_id'] = pd.to_numeric(df['user_id'])
-    df['item_id'] = pd.to_numeric(df['item_id'])
-    df['timestamp'] = pd.to_numeric(df['timestamp'])
-
-    return _process_dataframe(df)
-
-
 def _process_dataframe(df):
     """
     DataFrame处理的核心逻辑，被两个预处理函数共享。
     """
+    # 确保列名是 item_id, user_id, timestamp
+    if 'product_id' in df.columns:
+        df.rename(columns={'product_id': 'item_id'}, inplace=True)
+
     print(f"原始数据规模: {df.shape[0]} 条记录, {df['user_id'].nunique()} 个用户, {df['item_id'].nunique()} 个商品")
 
     print(f"\n步骤 1: 筛选数据，仅保留Top {K_ITEMS} 热门商品相关的交互...")
@@ -201,16 +208,26 @@ def start_training_process(sequences_dict, num_users, num_items):
 
 
 # --- 新增：离线训练专用函数 ---
-def offline_train(user_behaviors):
+def offline_train():
     """
     专用于离线训练的函数，由后端触发。
+    现在它会直接从ClickHouse拉取数据。
     """
     print("--- Starting Offline Training Job ---")
-    sequences_dict, num_users, num_items = preprocess_data_from_backend(user_behaviors)
+
+    # 1. 从 ClickHouse 获取数据
+    df = fetch_data_from_clickhouse()
+    if df is None or df.empty:
+        print("Offline training aborted: no data fetched from ClickHouse.")
+        return False
+
+    # 2. 处理 DataFrame
+    sequences_dict, num_users, num_items = _process_dataframe(df)
     if sequences_dict is None:
         print("Offline training aborted due to data processing error.")
         return False
 
+    # 3. 开始训练
     success = start_training_process(sequences_dict, num_users, num_items)
     print("--- Offline Training Job Finished ---")
     return success
@@ -229,4 +246,4 @@ def main_train_from_file():
 
 
 if __name__ == '__main__':
-    main_train_from_file()
+    offline_train()

@@ -132,33 +132,24 @@ def recommend():
 def trigger_training():
     global training_in_progress
     if training_in_progress:
-        return jsonify({"status": "error", "message": "A training process is already running."}), 409  # Conflict
-
-    data = request.get_json()
-    if not data or 'user_behaviors' not in data:
-        return jsonify({"status": "error", "message": "Invalid JSON input. 'user_behaviors' key is required."}), 400
-
-    user_behaviors = data.get('user_behaviors')
-    if not isinstance(user_behaviors, list):
-        return jsonify({"status": "error", "message": "'user_behaviors' must be a list."}), 400
+        return jsonify({"status": "error", "message": "A training process is already running."}), 409
 
     # 定义一个在线程中运行的函数
     def training_job():
         global training_in_progress
         training_in_progress = True
 
-        success = offline_train(user_behaviors)
+        # 直接调用 offline_train，不再传递数据
+        success = offline_train()
 
         if success:
             print("Training successful. Reloading artifacts...")
-            # 重新加载模型和映射文件
             load_artifacts()
         else:
             print("Training failed. Check logs for details.")
 
         training_in_progress = False
 
-    # 创建并启动一个新线程来运行训练任务
     thread = threading.Thread(target=training_job)
     thread.start()
 
