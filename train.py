@@ -21,9 +21,11 @@ K_ITEMS = 300
 CHECKPOINT_DIR = 'checkpoint'
 MAPS_DIR = 'maps'
 # --- ClickHouse 配置 ---
-CLICKHOUSE_HOST = 'localhost' # 你的 ClickHouse 主机
-CLICKHOUSE_PORT = 9000      # 你的 ClickHouse 端口
-CLICKHOUSE_DB = 'online_mall' # 你的数据库名
+CLICKHOUSE_HOST = 'localhost'  # 你的 ClickHouse 主机
+CLICKHOUSE_PORT = 9000  # 你的 ClickHouse 端口
+CLICKHOUSE_DB = 'online_mall'  # 你的数据库名
+CLICKHOUSE_USER = 'default'  # <-- 新增
+CLICKHOUSE_PASSWORD = '10086111'  # <-- 新增 (请确保与您的配置一致)
 
 print(f"Using device: {DEVICE}")
 
@@ -43,7 +45,9 @@ def fetch_data_from_clickhouse():
     """
     print("Connecting to ClickHouse to fetch user behaviors...")
     try:
-        client = Client(host=CLICKHOUSE_HOST, port=CLICKHOUSE_PORT, database=CLICKHOUSE_DB)
+        # 修改这里，加入 user 和 password
+        client = Client(host=CLICKHOUSE_HOST, port=CLICKHOUSE_PORT, database=CLICKHOUSE_DB, user=CLICKHOUSE_USER,
+                        password=CLICKHOUSE_PASSWORD)
         # 你可以增加 WHERE 条件来筛选特定的时间范围
         query = "SELECT user_id, product_id, toUnixTimestamp(timestamp) as timestamp FROM user_behaviors"
 
@@ -57,6 +61,7 @@ def fetch_data_from_clickhouse():
     except Exception as e:
         print(f"Error fetching data from ClickHouse: {e}")
         return None
+
 
 # --- 2. 数据预处理 (从文件) ---
 def preprocess_data_from_file(filepath=DATA_PATH):
