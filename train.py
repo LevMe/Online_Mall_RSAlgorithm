@@ -75,7 +75,19 @@ def preprocess_data_from_file(filepath=DATA_PATH):
     df = pd.read_csv(filepath, sep='\t', encoding='utf-8')
     df = df[['UserId', 'ItemId', 'Timestamp']]
     df.rename(columns={'UserId': 'user_id', 'ItemId': 'item_id', 'Timestamp': 'timestamp'}, inplace=True)
-    return _process_dataframe(df)
+    
+    # 仅原始数据集需要筛选
+    print(f"\n步骤 1: 筛选数据，仅保留Top {K_ITEMS} 热门商品相关的交互...")
+    item_counts = df['item_id'].value_counts()
+    num_items_to_keep = min(K_ITEMS, len(item_counts))
+    top_items = item_counts.nlargest(num_items_to_keep).index
+    print(f"已识别出 {len(top_items)} 个最热门的商品。")
+
+    df_filtered = df[df['item_id'].isin(top_items)]
+    print(
+        f"数据精简后规模: {df_filtered.shape[0]} 条记录, {df_filtered['user_id'].nunique()} 个用户, {df_filtered['item_id'].nunique()} 个商品")
+    
+    return _process_dataframe(df_filtered)
 
 
 def _process_dataframe(df):
@@ -86,22 +98,12 @@ def _process_dataframe(df):
     if 'product_id' in df.columns:
         df.rename(columns={'product_id': 'item_id'}, inplace=True)
 
-    print(f"原始数据规模: {df.shape[0]} 条记录, {df['user_id'].nunique()} 个用户, {df['item_id'].nunique()} 个商品")
+    print(f"数据规模: {df.shape[0]} 条记录, {df['user_id'].nunique()} 个用户, {df['item_id'].nunique()} 个商品")
 
-    print(f"\n步骤 1: 筛选数据，仅保留Top {K_ITEMS} 热门商品相关的交互...")
-    item_counts = df['item_id'].value_counts()
-    num_items_to_keep = min(K_ITEMS, len(item_counts))
-    top_items = item_counts.nlargest(num_items_to_keep).index
-    print(f"已识别出 {len(top_items)} 个最热门的商品。")
+    df.sort_values(by='timestamp', inplace=True)
 
-    df_filtered = df[df['item_id'].isin(top_items)]
-    print(
-        f"数据精简后规模: {df_filtered.shape[0]} 条记录, {df_filtered['user_id'].nunique()} 个用户, {df_filtered['item_id'].nunique()} 个商品")
-
-    df_filtered.sort_values(by='timestamp', inplace=True)
-
-    unique_users = df_filtered['user_id'].unique()
-    unique_items = df_filtered['item_id'].unique()
+    unique_users = df['user_id'].unique()
+    unique_items = df['item_id'].unique()
 
     user_map = {int(id): int(i + 1) for i, id in enumerate(unique_users)}
     item_map = {int(id): int(i + 1) for i, id in enumerate(unique_items)}
@@ -116,12 +118,13 @@ def _process_dataframe(df):
         json.dump(item_map, f)
     print("ID maps saved.")
 
-    df_filtered['user_idx'] = df_filtered['user_id'].map(user_map)
-    df_filtered['item_idx'] = df_filtered['item_id'].map(item_map)
+    df['user_idx'] = df['user_id'].map(user_map)
+    df['item_idx'] = df['item_id'].map(item_map)
 
-    sequences = df_filtered.groupby('user_idx')['item_idx'].apply(list)
+    sequences = df.groupby('user_idx')['item_idx'].apply(list)
 
     print("Data preprocessing finished.")
+
     return sequences.to_dict(), num_users, num_items
 
 
@@ -241,7 +244,7 @@ def offline_train():
 # --- 原有的主函数，用于直接运行文件进行训练 ---
 def main_train_from_file():
     """
-    主训练函数 (从文件)。
+    主训练函数 (从文件)。没有模型pth文件时需要先执行从文件训练
     """
     sequences_dict, num_users, num_items = preprocess_data_from_file(DATA_PATH)
     if sequences_dict is None:
@@ -251,4 +254,5 @@ def main_train_from_file():
 
 
 if __name__ == '__main__':
-    offline_train()
+    # offline_train()
+    main_train_from_file()
